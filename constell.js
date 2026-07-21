@@ -29,27 +29,28 @@ const DEFAULT_CONFIG = {
   },
 
   motion: {
-    frameMs: 100,           // ≈ 10 fps (min ms between frames)
-    pointerLerp: 0.07,      // smoothness of pointer tracking
+    frameMs: 100, // ≈ 10 fps (min ms between frames)
+    pointerLerp: 0.07, // smoothness of pointer tracking
     prefersReducedMotion: false,
+    speed: 5, // master speed multiplier (1–10, default 5 = normal)
   },
 
   parallax: {
     sensitivityX: 0.0006,
     sensitivityY: 0.00045,
-    depthFactorX: 0.05,     // non-depth parallax on screen coords (X)
-    depthFactorY: 0.04,     // non-depth parallax on screen coords (Y)
+    depthFactorX: 0.05, // non-depth parallax on screen coords (X)
+    depthFactorY: 0.04, // non-depth parallax on screen coords (Y)
   },
 
   starMotion: {
     driftBase: 0.14,
-    driftDepthScale: 0.9,   // how much depth amplifies drift speed
+    driftDepthScale: 0.9, // how much depth amplifies drift speed
   },
 
   visual: {
     alphaBase: 0.18,
     alphaDepthScale: 0.55,
-    glowThreshold: 0.65,     // star.depth above which a glow is drawn
+    glowThreshold: 0.65, // star.depth above which a glow is drawn
     glowAlphaMultiplier: 0.55,
     glowRadiusMultiplier: 5,
     twinkleAmplitude: 0.16,
@@ -58,46 +59,55 @@ const DEFAULT_CONFIG = {
   nebula: [
     // Layer 1 — slow sine drift + pointer parallax
     {
-      xBase: 0.22, yBase: 0.24, radiusScale: 0.42,
+      xBase: 0.22,
+      yBase: 0.24,
+      radiusScale: 0.42,
       color: "rgba(126, 94, 255, 0.18)",
       driftX: { enabled: true, freq: 0.4, amount: 0.1 },
       driftY: { enabled: true, freq: 0.35, amount: 0.06 },
-      parallaxX: 0.08, parallaxY: 0.08,
+      parallaxX: 0.08,
+      parallaxY: 0.08,
     },
     // Layer 2 — inverted sine drift + pointer parallax
     {
-      xBase: 0.82, yBase: 0.28, radiusScale: 0.36,
+      xBase: 0.82,
+      yBase: 0.28,
+      radiusScale: 0.36,
       color: "rgba(0, 224, 255, 0.14)",
       driftX: { enabled: true, freq: 0.38, amount: 0.08, invert: true },
       driftY: { enabled: true, freq: 0.32, amount: 0.06, scale: 0.5 },
-      parallaxX: 0.05, parallaxY: 0.05,
+      parallaxX: 0.05,
+      parallaxY: 0.05,
     },
     // Layer 3 — pure sin/cos position animation
     {
-      xBase: 0.52, yBase: 0.72, radiusScale: 0.48,
+      xBase: 0.52,
+      yBase: 0.72,
+      radiusScale: 0.48,
       color: "rgba(255, 121, 214, 0.08)",
       animatedX: { enabled: true, freq: 0.35, amount: 0.08 },
       animatedY: { enabled: true, freq: 0.3, amount: 0.06, type: "cos" },
-      parallaxX: 0, parallaxY: 0,
+      parallaxX: 0,
+      parallaxY: 0,
     },
   ],
 
   shootingStar: {
     enabled: true,
-    chancePerFrame: 0.008,         // probability of spawning per frame (~1 every 2s at 60fps)
-    speedMin: 4,                    // pixels/frame
+    chancePerFrame: 0.008, // probability of spawning per frame (~1 every 2s at 60fps)
+    speedMin: 4, // pixels/frame
     speedMax: 10,
-    angleMin: 25,                   // degrees from horizontal (25-55 = diagonal sweep)
+    angleMin: 25, // degrees from horizontal (25-55 = diagonal sweep)
     angleMax: 55,
-    lengthMin: 80,                  // trail length in px
+    lengthMin: 80, // trail length in px
     lengthMax: 200,
     thicknessMin: 1.8,
     thicknessMax: 3.2,
-    hueMin: 190,                    // white-blue range
+    hueMin: 190, // white-blue range
     hueMax: 240,
     headAlpha: 0.95,
-    fadeInFrames: 3,                // frames to reach max brightness
-    lifetimeMin: 25,                // frames alive before disappearing
+    fadeInFrames: 3, // frames to reach max brightness
+    lifetimeMin: 25, // frames alive before disappearing
     lifetimeMax: 60,
   },
 
@@ -159,11 +169,13 @@ function mergeConfig(user) {
    ────────────────────────────────────────────── */
 
 let canvas, context;
-let config = DEFAULT_CONFIG;       // live (merged) config
+let config = DEFAULT_CONFIG; // live (merged) config
 let stars = [];
-let shootingStars = [];            // active shooting star instances
+let shootingStars = []; // active shooting star instances
 let pointer = { x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 };
-let width = 0, height = 0, dpr = 1;
+let width = 0,
+  height = 0,
+  dpr = 1;
 let lastFrameTime = 0;
 let animationId = null;
 let initialized = false;
@@ -234,6 +246,7 @@ function resize() {
 
 function drawBackdrop(time) {
   const c = config;
+  const speed = c.motion.speed / 5; // normalise around default of 5
   const px = pointer.x * width;
   const py = pointer.y * height;
 
@@ -251,26 +264,27 @@ function drawBackdrop(time) {
 
   for (const layer of c.nebula) {
     const t = time;
-    let offsetX = 0, offsetY = 0;
+    let offsetX = 0,
+      offsetY = 0;
 
-    // Drift-based movement (sine waves)
+    // Drift-based movement (sine waves) — time scaled by speed
     if (layer.driftX?.enabled) {
-      const d = Math.sin(t * layer.driftX.freq) * width * layer.driftX.amount;
+      const d = Math.sin(t * layer.driftX.freq * speed) * width * layer.driftX.amount;
       offsetX += layer.driftX.invert ? -d : d;
     }
     if (layer.driftY?.enabled) {
-      const freq = layer.driftY.freq ?? layer.driftX?.freq ?? 0;
+      const freq = (layer.driftY.freq ?? layer.driftX?.freq ?? 0) * speed;
       const d = Math.sin(t * freq) * height * layer.driftY.amount;
       offsetY += (layer.driftY.scale ?? 1) * d;
     }
 
-    // Pure sin/cos position animation
+    // Pure sin/cos position animation — time scaled by speed
     if (!layer.driftX?.enabled && layer.animatedX?.enabled) {
-      offsetX = Math.sin(t * layer.animatedX.freq) * width * layer.animatedX.amount;
+      offsetX = Math.sin(t * layer.animatedX.freq * speed) * width * layer.animatedX.amount;
     }
     if (!layer.driftY?.enabled && layer.animatedY?.enabled) {
       const fn = layer.animatedY.type === "cos" ? Math.cos : Math.sin;
-      offsetY = fn(t * layer.animatedY.freq) * height * layer.animatedY.amount;
+      offsetY = fn(t * layer.animatedY.freq * speed) * height * layer.animatedY.amount;
     }
 
     // Pointer parallax
@@ -282,9 +296,7 @@ function drawBackdrop(time) {
     const radius = Math.max(width, height) * layer.radiusScale;
 
     // Build gradient — fade alpha to ~1/3 at mid-stop
-    const fadedColor = layer.color.replace(/([\d.]+)(?=\))/, (m) =>
-      (parseFloat(m) * 0.33).toFixed(2),
-    );
+    const fadedColor = layer.color.replace(/([\d.]+)(?=\))/, (m) => (parseFloat(m) * 0.33).toFixed(2));
     const gradient = context.createRadialGradient(cx, cy, 0, cx, cy, radius);
     gradient.addColorStop(0, layer.color);
     gradient.addColorStop(0.55, fadedColor);
@@ -335,7 +347,8 @@ function createShootingStar() {
   }
 
   return {
-    x, y,
+    x,
+    y,
     angle: finalAngle,
     speed: random(c.speedMin, c.speedMax),
     vx: Math.cos(finalAngle) * (edge >= 0.9 ? -1 : 1),
@@ -350,21 +363,22 @@ function createShootingStar() {
 }
 
 function updateShootingStars() {
+  const speed = config.motion.speed / 5; // normalise around default of 5
   const c = config.shootingStar;
 
   // Spawn check (skip if disabled or reduced motion)
-  if (c.enabled && !c.prefersReducedMotion) {
+  if (c.enabled && !config.motion.prefersReducedMotion) {
     if (Math.random() < c.chancePerFrame && shootingStars.length < 2) {
       shootingStars.push(createShootingStar());
     }
   }
 
-  // Update existing stars
+  // Update existing stars — speed scales movement, inverse speed scales lifetime
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     const s = shootingStars[i];
-    s.x += s.vx * s.speed;
-    s.y += s.vy * s.speed;
-    s.life++;
+    s.x += s.vx * s.speed * speed;
+    s.y += s.vy * s.speed * speed;
+    s.life += 1 / speed;
 
     // Remove if expired or way off-screen
     if (s.life > s.maxLife || s.y > height + 100 || s.x < -200 || s.x > width + 200) {
@@ -405,10 +419,7 @@ function drawShootingStars() {
     const tailY = s.y - s.vy * s.length * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
 
     // Trail gradient (bright head → transparent tail)
-    const trailGrad = context.createLinearGradient(
-      tailX, tailY,
-      s.x, s.y,
-    );
+    const trailGrad = context.createLinearGradient(tailX, tailY, s.x, s.y);
     const tailAlpha = alpha * 0.3;
     trailGrad.addColorStop(0, `hsla(${s.hue}, 60%, 90%, ${tailAlpha})`);
     trailGrad.addColorStop(0.3, `hsla(${s.hue}, 80%, 92%, ${alpha * 0.7})`);
@@ -454,10 +465,7 @@ function drawStars() {
 
     if (star.depth > c.visual.glowThreshold) {
       const glowRadius = radius * c.visual.glowRadiusMultiplier;
-      const glow = context.createRadialGradient(
-        star.screenX, star.screenY, 0,
-        star.screenX, star.screenY, glowRadius,
-      );
+      const glow = context.createRadialGradient(star.screenX, star.screenY, 0, star.screenX, star.screenY, glowRadius);
       glow.addColorStop(0, `hsla(${hue}, 100%, 85%, ${alpha * c.visual.glowAlphaMultiplier})`);
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
@@ -475,6 +483,7 @@ function drawStars() {
    ────────────────────────────────────────────── */
 
 function updateStars(time) {
+  const speed = config.motion.speed / 5; // normalise around default of 5
   const c = config;
   const pointerX = pointer.x - 0.5;
   const pointerY = pointer.y - 0.5;
@@ -482,18 +491,12 @@ function updateStars(time) {
   for (const star of stars) {
     if (!c.motion.prefersReducedMotion) {
       const driftScale = c.starMotion.driftBase + star.depth * c.starMotion.driftDepthScale;
-      star.x = (star.x + star.speedX * driftScale
-        + pointerX * c.parallax.sensitivityX * (1 - star.depth)
-        + 1) % 1;
-      star.y = (star.y + star.speedY * driftScale
-        + pointerY * c.parallax.sensitivityY * (1 - star.depth)
-        + 1) % 1;
+      star.x = (star.x + star.speedX * driftScale * speed + pointerX * c.parallax.sensitivityX * (1 - star.depth) * speed + 1) % 1;
+      star.y = (star.y + star.speedY * driftScale * speed + pointerY * c.parallax.sensitivityY * (1 - star.depth) * speed + 1) % 1;
     }
 
-    star.screenX = star.x * width
-      + pointerX * width * c.parallax.depthFactorX * (1 - star.depth);
-    star.screenY = star.y * height
-      + pointerY * height * c.parallax.depthFactorY * (1 - star.depth);
+    star.screenX = star.x * width + pointerX * width * c.parallax.depthFactorX * (1 - star.depth);
+    star.screenY = star.y * height + pointerY * height * c.parallax.depthFactorY * (1 - star.depth);
     star.twinkle = 1 + Math.sin(time * star.twinkleSpeed + star.phase) * c.visual.twinkleAmplitude;
   }
 }
@@ -523,7 +526,7 @@ function render(timestamp) {
   drawShootingStars();
   drawStars();
 
-  if (c.prefersReducedMotion) return;  // still render but don't loop
+  if (c.prefersReducedMotion) return; // still render but don't loop
   animationId = requestAnimationFrame(render);
 }
 
@@ -543,10 +546,14 @@ function bindEvents() {
     { passive: true },
   );
 
-  window.addEventListener("pointerleave", () => {
-    pointer.targetX = 0.5;
-    pointer.targetY = 0.5;
-  }, { passive: true });
+  window.addEventListener(
+    "pointerleave",
+    () => {
+      pointer.targetX = 0.5;
+      pointer.targetY = 0.5;
+    },
+    { passive: true },
+  );
 
   window.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
@@ -586,8 +593,6 @@ function init(el, userConfig) {
   context = canvas.getContext("2d", { alpha: true, desynchronized: true });
   config = userConfig ? mergeConfig(userConfig) : structuredClone(DEFAULT_CONFIG);
 
-
-
   resize();
   seedStars();
   bindEvents();
@@ -605,8 +610,6 @@ function configure(overrides) {
 
   const countBefore = config.star.count;
   config = mergeConfig(overrides);
-
-
 
   // Re-seed if star count changed
   if (config.star.count !== countBefore) {

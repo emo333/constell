@@ -57,7 +57,10 @@ All values are optional; missing keys fall back to the defaults shown below.
 |-----|---------|-------------|
 | `frameMs` | `100` | Minimum ms between frames (set to `33` for ~30 fps) |
 | `pointerLerp` | `0.07` | Smoothness of pointer tracking (`0` = none, `1` = instant) |
-| `prefersReducedMotion` | `false` | Force no animation; respects OS setting unless overridden |
+| `prefersReducedMotion` | `false` | Force no animation (stars still twinkle). Pass `true` to freeze all motion.
+| `speed` | `5` | Master speed multiplier for all motion (`1` = very slow, `5` = normal, `10` = 2× speed). No clamping — higher values work too. |
+
+The `speed` value scales star drift/parallax, nebula animation timing, and shooting-star movement/lifespan proportionally. Values below 5 slow everything down; above 5 accelerate it.
 
 ### `parallax` — mouse-driven offset
 
@@ -106,9 +109,9 @@ An array of up to 3 layer objects. Each accepts the keys below:
 | `driftY.amount` | varies | Drift amplitude as fraction of canvas height |
 | `animatedX.enabled` | false | Pure `sin(t*freq)*width*amount` offset (no drift) |
 | `animatedY.enabled` | false | Pure `cos`/`sin(t*freq)*height*amount` offset |
-| `animatedY.type` | `"sin"` | Function — either `"sin"` or `"cos"` |
-| `parallaxX` | 0 | Pointer X parallax multiplier |
-| `parallaxY` | 0 | Pointer Y parallax multiplier |
+| `animatedY.type` | `"sin"` | Oscillator — either `"sin"` or `"cos"` |
+| `parallaxX` | `0` | Pointer X parallax multiplier |
+| `parallaxY` | `0` | Pointer Y parallax multiplier |
 
 ### `shootingStar` — random meteors streaking across the sky
 
@@ -117,11 +120,11 @@ A shooting star spawns randomly at a rate controlled by `chancePerFrame`. Multip
 | Key | Default | Description |
 |-----|---------|-------------|
 | `enabled` | `true` | Enable/disable shooting stars entirely |
-| `chancePerFrame` | `0.008` | Spawn probability per frame (~1 every 2s at 60 fps) |
+| `chancePerFrame` | `0.008` | Spawn probability per frame (≈1 every 2s at 60 fps, ≈1 every 4s at 30 fps) |
 | `speedMin` | `4` | Min speed in pixels/frame |
 | `speedMax` | `10` | Max speed in pixels/frame |
-| `angleMin` | `25` | Min sweep angle from horizontal (degrees, diagonal streaks) |
-| `angleMax` | `55` | Max sweep angle (degrees) |
+| `angleMin` | `25` | Min sweep angle from horizontal in degrees (diagonal streaks) |
+| `angleMax` | `55` | Max sweep angle in degrees |
 | `lengthMin` | `80` | Minimum trail length in px |
 | `lengthMax` | `200` | Maximum trail length in px |
 | `thicknessMin` | `1.8` | Minimum head thickness in px |
@@ -163,6 +166,20 @@ Constell.configure({ shootingStar: { enabled: false } });
 
 ---
 
+### Master speed slider
+
+The `motion.speed` setting (default 5, soft range 1–10) uniformly scales **every** moving thing: star drift, nebula animation timing, and shooting-star travel speed and lifetime.
+
+```js
+// Half speed — lazy stars, slow nebulae
+Constell.configure({ motion: { speed: 2.5 } });
+
+// Double pace — energetic everything
+Constell.configure({ motion: { speed: 10 } });
+```
+
+---
+
 ## CSS custom properties
 
 These override styling for the demo page overlay and body gradient background. They do **not** affect canvas rendering (that is controlled by JS config above).
@@ -194,17 +211,15 @@ Example — purple theming:
 
 ## Runtime re-configuration
 
-Change any setting after init without reloading the page:
+Change any setting after init without reloading the page. Partial configs work — only provided keys merge over the current config.
 
 ```js
 Constell.configure({
-  star:    { count: 80 },          // stars are re-seeded automatically
-  motion:  { frameMs: 16 },        // ~60 fps
-  visual:  { glowRadiusMultiplier: 6 },
+  star: { count: 80 },                  // stars are re-seeded automatically
+  motion: { frameMs: 16 },              // ~60 fps
+  visual: { glowRadiusMultiplier: 6 },
 });
 ```
-
-Partial configs work — only the keys you provide are merged; everything else stays as-is.
 
 ---
 

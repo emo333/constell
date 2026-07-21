@@ -19,7 +19,7 @@
 
   --constell-overlay-bg: rgba(4, 8, 22, 0.46);
   --constell-overlay-border: rgba(190, 210, 255, 0.14);
-  --constell-overlay-blur: 1px;
+  --constell-overlay-blur: 18px;
 
   --constell-eyebrow-color: rgba(180, 220, 255, 0.78);
   --constell-copy-color: rgba(230, 239, 255, 0.78);

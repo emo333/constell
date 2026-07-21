@@ -32,15 +32,15 @@
 
       // Shooting stars are enabled by default — tweak their frequency/color here
       Constell.init("#scene", {
-        star: { count: 55, hueMin: 170, hueMax: 280 },
-        motion:  { frameMs: 33 },     // ~30 fps for smoother shots
-        parallax:{ sensitivityX: 0.0008, sensitivityY: 0.0006 },
-        visual:  { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
+        star: { count: 35, hueMin: 170, hueMax: 280 },
+        motion:  { frameMs: 33, speed: 5 },     // ~30 fps, normal speed (1-10)
+        parallax: { sensitivityX: 0.0008, sensitivityY: 0.0006 },
+        visual: { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
         shootingStar: {
           // Default chancePerFrame: 0.008 (~1 every 2s at 30fps)
           // Increase for more dramatic effect
           hueMin: 200,
-          hueMax: 260,     // blue-white meteors
+          hueMax: 260, // blue-white meteors
         },
       });
     </script>
