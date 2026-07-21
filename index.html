@@ -1,21 +1,41 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="dark">
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <title>Constell</title>
-    <link rel="stylesheet" href="constell.css">
+    <link rel="stylesheet" href="constell.css" />
   </head>
   <body>
     <canvas id="scene" aria-hidden="true"></canvas>
 
+    <!-- Override CSS variables to demo runtime theming -->
+    <style>
+      :root {
+        --constell-nebula-a: rgba(255, 100, 180, 0.2);
+        --constell-nebula-b: rgba(80, 200, 255, 0.14);
+        --constell-overlay-border: rgba(200, 220, 255, 0.2);
+      }
+    </style>
+
     <main class="overlay" aria-label="Constellation background preview">
       <p class="eyebrow">Constellation Background</p>
       <h1>Constell</h1>
-      <p class="copy">A drifting starfield with faint connections between nearby stars.</p>
+      <p class="copy">A configurable animated starfield. Adjust parameters in the source.</p>
     </main>
 
-    <script src="constell.js"></script>
+    <!-- Demo: pass a config object on init -->
+    <script type="module">
+      import { Constell } from "./constell.js";
+
+      Constell.init("#scene", {
+        star: { count: 55, hueMin: 170, hueMax: 280 },
+        motion: { frameMs: 33 }, // ~30 fps
+        parallax: { sensitivityX: 0.0008, sensitivityY: 0.0006 },
+        visual: { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
+      });
+    </script>
   </body>
 </html>
