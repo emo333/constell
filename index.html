@@ -23,18 +23,25 @@
     <main class="overlay" aria-label="Constellation background preview">
       <p class="eyebrow">Constellation Background</p>
       <h1>Constell</h1>
-      <p class="copy">A configurable animated starfield. Adjust parameters in the source.</p>
+      <p class="copy">Animated starfield with shooting stars — tweak the config below.</p>
     </main>
 
     <!-- Demo: pass a config object on init -->
     <script type="module">
       import { Constell } from "./constell.js";
 
+      // Shooting stars are enabled by default — tweak their frequency/color here
       Constell.init("#scene", {
         star: { count: 55, hueMin: 170, hueMax: 280 },
-        motion: { frameMs: 33 }, // ~30 fps
-        parallax: { sensitivityX: 0.0008, sensitivityY: 0.0006 },
-        visual: { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
+        motion:  { frameMs: 33 },     // ~30 fps for smoother shots
+        parallax:{ sensitivityX: 0.0008, sensitivityY: 0.0006 },
+        visual:  { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
+        shootingStar: {
+          // Default chancePerFrame: 0.008 (~1 every 2s at 30fps)
+          // Increase for more dramatic effect
+          hueMin: 200,
+          hueMax: 260,     // blue-white meteors
+        },
       });
     </script>
   </body>

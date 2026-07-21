@@ -1,22 +1,28 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 
   /* ── Constell configurable CSS variables ──
      Override these on :root or a parent element to restyle without touching JS. */
 
-  --constell-bg-start: #040816;       /* backdrop gradient start color    */
-  --constell-bg-end:   #030510;       /* backdrop gradient end color      */
-  --constell-nebula-a: rgba(122, 92, 255, 0.22);  /* body-gradient nebula A   */
-  --constell-nebula-b: rgba(0, 217, 255, 0.16);   /* body-gradient nebula B   */
+  --constell-bg-start: #040816; /* backdrop gradient start color    */
+  --constell-bg-end: #030510; /* backdrop gradient end color      */
+  --constell-nebula-a: rgba(122, 92, 255, 0.22); /* body-gradient nebula A   */
+  --constell-nebula-b: rgba(0, 217, 255, 0.16); /* body-gradient nebula B   */
 
-  --constell-overlay-bg:       rgba(4, 8, 22, 0.46);
-  --constell-overlay-border:   rgba(190, 210, 255, 0.14);
-  --constell-overlay-blur:     18px;
-  --constell-overlay-shadow:   0 24px 80px rgba(0, 0, 0, 0.32);
+  --constell-overlay-bg: rgba(4, 8, 22, 0.46);
+  --constell-overlay-border: rgba(190, 210, 255, 0.14);
+  --constell-overlay-blur: 1px;
 
-  --constell-eyebrow-color:    rgba(180, 220, 255, 0.78);
-  --constell-copy-color:       rgba(230, 239, 255, 0.78);
+  --constell-eyebrow-color: rgba(180, 220, 255, 0.78);
+  --constell-copy-color: rgba(230, 239, 255, 0.78);
 }
 
 html,
@@ -28,10 +34,7 @@ body {
 
 body {
   overflow: hidden;
-  background:
-    radial-gradient(circle at 20% 20%, var(--constell-nebula-a), transparent 34%),
-    radial-gradient(circle at 80% 18%, var(--constell-nebula-b), transparent 28%),
-    linear-gradient(180deg, var(--constell-bg-start) 0%, var(--constell-bg-end) 100%);
+  background: radial-gradient(circle at 20% 20%, var(--constell-nebula-a), transparent 34%), radial-gradient(circle at 80% 18%, var(--constell-nebula-b), transparent 28%), linear-gradient(180deg, var(--constell-bg-start) 0%, var(--constell-bg-end) 100%);
   color: rgba(245, 248, 255, 0.92);
 }
 
@@ -54,7 +57,6 @@ body {
   border-radius: 1.2rem;
   background: var(--constell-overlay-bg);
   backdrop-filter: blur(var(--constell-overlay-blur));
-  box-shadow: var(--constell-overlay-shadow);
   text-align: center;
   pointer-events: none;
 }

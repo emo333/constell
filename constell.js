@@ -324,11 +324,15 @@ function createShootingStar() {
     angleDeg = random(180 - c.angleMax, 180 - c.angleMin); // reflect
   }
 
-  const angleRad = ((edge >= 0.9 ? 180 : 0) + (edge < 0.9 ? angleDeg : angleDeg)) * Math.PI / 180;
-  // Simplified: for normal case, just use the angle from horizontal
-  const finalAngle = edge < 0.9
-    ? (angleDeg * Math.PI) / 180
-    : Math.PI - (angleDeg * Math.PI) / 180; // left-down sweep
+  // Determine direction based on spawn side
+  let finalAngle;
+  if (edge < 0.9) {
+    // Top/left → down-right
+    finalAngle = (angleDeg * Math.PI) / 180;
+  } else {
+    // Right-ish → down-left
+    finalAngle = Math.PI - (angleDeg * Math.PI) / 180;
+  }
 
   return {
     x, y,
@@ -362,8 +366,8 @@ function updateShootingStars() {
     s.y += s.vy * s.speed;
     s.life++;
 
-    // Remove if expired or off-screen
-    if (s.life > s.maxLife || s.y > height + 50 || x > width + 300) {
+    // Remove if expired or way off-screen
+    if (s.life > s.maxLife || s.y > height + 100 || s.x < -200 || s.x > width + 200) {
       shootingStars.splice(i, 1);
     }
   }
@@ -476,7 +480,7 @@ function updateStars(time) {
   const pointerY = pointer.y - 0.5;
 
   for (const star of stars) {
-    if (!c.motion.prefersReducedMotion && !config.shootingStar.prefersReducedMotion) {
+    if (!c.motion.prefersReducedMotion) {
       const driftScale = c.starMotion.driftBase + star.depth * c.starMotion.driftDepthScale;
       star.x = (star.x + star.speedX * driftScale
         + pointerX * c.parallax.sensitivityX * (1 - star.depth)

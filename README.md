@@ -110,6 +110,49 @@ An array of up to 3 layer objects. Each accepts the keys below:
 | `parallaxX` | 0 | Pointer X parallax multiplier |
 | `parallaxY` | 0 | Pointer Y parallax multiplier |
 
+### `shootingStar` — random meteors streaking across the sky
+
+A shooting star spawns randomly at a rate controlled by `chancePerFrame`. Multiple can be active simultaneously (max 2). Each has a bright head with a fading trail.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `true` | Enable/disable shooting stars entirely |
+| `chancePerFrame` | `0.008` | Spawn probability per frame (~1 every 2s at 60 fps) |
+| `speedMin` | `4` | Min speed in pixels/frame |
+| `speedMax` | `10` | Max speed in pixels/frame |
+| `angleMin` | `25` | Min sweep angle from horizontal (degrees, diagonal streaks) |
+| `angleMax` | `55` | Max sweep angle (degrees) |
+| `lengthMin` | `80` | Minimum trail length in px |
+| `lengthMax` | `200` | Maximum trail length in px |
+| `thicknessMin` | `1.8` | Minimum head thickness in px |
+| `thicknessMax` | `3.2` | Maximum head thickness in px |
+| `hueMin` | `190` | Minimum hue for star color (blue-white range) |
+| `hueMax` | `240` | Maximum hue |
+| `headAlpha` | `0.95` | Peak brightness of the head |
+| `fadeInFrames` | `3` | Frames to reach full brightness on spawn |
+| `lifetimeMin` | `25` | Minimum lifespan in frames |
+| `lifetimeMax` | `60` | Maximum lifespan in frames |
+
+Example — frequent colorful meteors:
+
+```js
+Constell.configure({
+  shootingStar: {
+    chancePerFrame: 0.03,
+    hueMin: 280,           // purples
+    hueMax: 340,
+    speedMin: 6,
+    lengthMax: 300,
+  },
+});
+```
+
+Example — disable entirely:
+
+```js
+Constell.configure({ shootingStar: { enabled: false } });
+```
+
 ### `backdrop` — solid gradient background
 
 | Key | Default | Description |
