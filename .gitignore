@@ -1,0 +1,80 @@
+## .NET
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Rider
+.idea/
+*.sln.iml
+
+## VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+## Build results
+*.dll
+*.exe
+*.pdb
+*.dll.config
+*.exe.config
+*.dll.config
+*.xml
+
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+nuget.config
+!nuget.config
+
+## Azure
+*.publishsettings
+*.pubxml
+*.pubxml.user
+
+## macOS
+.DS_Store
+
+## Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## Tools
+*.swp
+*.swo
+
+## Generated
+wwwroot/lib/
+
+## AI
+opencode.json
+AGENTS.md
+SKILLS.md

@@ -82,6 +82,25 @@ const DEFAULT_CONFIG = {
     },
   ],
 
+  shootingStar: {
+    enabled: true,
+    chancePerFrame: 0.008,         // probability of spawning per frame (~1 every 2s at 60fps)
+    speedMin: 4,                    // pixels/frame
+    speedMax: 10,
+    angleMin: 25,                   // degrees from horizontal (25-55 = diagonal sweep)
+    angleMax: 55,
+    lengthMin: 80,                  // trail length in px
+    lengthMax: 200,
+    thicknessMin: 1.8,
+    thicknessMax: 3.2,
+    hueMin: 190,                    // white-blue range
+    hueMax: 240,
+    headAlpha: 0.95,
+    fadeInFrames: 3,                // frames to reach max brightness
+    lifetimeMin: 25,                // frames alive before disappearing
+    lifetimeMax: 60,
+  },
+
   backdrop: {
     colorTop: "#030510",
     colorMid: "#061425",
@@ -122,6 +141,11 @@ function mergeConfig(user) {
     }
   }
 
+  // Shooting star
+  if (user.shootingStar && typeof user.shootingStar === "object") {
+    Object.assign(cfg.shootingStar, user.shootingStar);
+  }
+
   // Backdrop
   if (user.backdrop && typeof user.backdrop === "object") {
     Object.assign(cfg.backdrop, user.backdrop);
@@ -137,6 +161,7 @@ function mergeConfig(user) {
 let canvas, context;
 let config = DEFAULT_CONFIG;       // live (merged) config
 let stars = [];
+let shootingStars = [];            // active shooting star instances
 let pointer = { x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 };
 let width = 0, height = 0, dpr = 1;
 let lastFrameTime = 0;
@@ -272,8 +297,141 @@ function drawBackdrop(time) {
 }
 
 /* ──────────────────────────────────────────────
+   Shooting star spawning & update
+   ────────────────────────────────────────────── */
+
+function createShootingStar() {
+  const c = config.shootingStar;
+
+  // Pick random edge to spawn from (top or left preferentially)
+  const edge = Math.random();
+  let x, y, angleDeg;
+
+  if (edge < 0.65) {
+    // Start from top edge, sweep right-down
+    x = random(0, width * 0.8);
+    y = -20;
+    angleDeg = random(c.angleMin, c.angleMax);
+  } else if (edge < 0.9) {
+    // Start from left edge, sweep down-right
+    x = -20;
+    y = random(0, height * 0.6);
+    angleDeg = random(c.angleMin, c.angleMax + 15); // steeper
+  } else {
+    // Start from top-right-ish, sweep left-down (rare)
+    x = random(width * 0.3, width);
+    y = -20;
+    angleDeg = random(180 - c.angleMax, 180 - c.angleMin); // reflect
+  }
+
+  const angleRad = ((edge >= 0.9 ? 180 : 0) + (edge < 0.9 ? angleDeg : angleDeg)) * Math.PI / 180;
+  // Simplified: for normal case, just use the angle from horizontal
+  const finalAngle = edge < 0.9
+    ? (angleDeg * Math.PI) / 180
+    : Math.PI - (angleDeg * Math.PI) / 180; // left-down sweep
+
+  return {
+    x, y,
+    angle: finalAngle,
+    speed: random(c.speedMin, c.speedMax),
+    vx: Math.cos(finalAngle) * (edge >= 0.9 ? -1 : 1),
+    vy: Math.sin(finalAngle),
+    length: random(c.lengthMin, c.lengthMax),
+    thickness: random(c.thicknessMin, c.thicknessMax),
+    hue: random(c.hueMin, c.hueMax),
+    life: 0,
+    maxLife: random(c.lifetimeMin, c.lifetimeMax),
+    fadeIn: Math.min(c.fadeInFrames, 3),
+  };
+}
+
+function updateShootingStars() {
+  const c = config.shootingStar;
+
+  // Spawn check (skip if disabled or reduced motion)
+  if (c.enabled && !c.prefersReducedMotion) {
+    if (Math.random() < c.chancePerFrame && shootingStars.length < 2) {
+      shootingStars.push(createShootingStar());
+    }
+  }
+
+  // Update existing stars
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const s = shootingStars[i];
+    s.x += s.vx * s.speed;
+    s.y += s.vy * s.speed;
+    s.life++;
+
+    // Remove if expired or off-screen
+    if (s.life > s.maxLife || s.y > height + 50 || x > width + 300) {
+      shootingStars.splice(i, 1);
+    }
+  }
+}
+
+/* ──────────────────────────────────────────────
    Drawing — stars + glow
    ────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────
+   Drawing — shooting stars
+   ────────────────────────────────────────────── */
+
+function drawShootingStars() {
+  if (shootingStars.length === 0) return;
+
+  context.save();
+  context.globalCompositeOperation = "screen";
+
+  for (const s of shootingStars) {
+    const fadeProgress = s.life / s.maxLife;
+    let alpha;
+
+    // Fade in quickly, then gradual fade out
+    if (s.life < s.fadeIn) {
+      alpha = (s.life / s.fadeIn) * config.shootingStar.headAlpha;
+    } else {
+      alpha = config.shootingStar.headAlpha * (1 - (fadeProgress - 0.1) / 0.9);
+    }
+    alpha = Math.max(0, alpha);
+
+    if (alpha <= 0) continue;
+
+    const tailX = s.x - s.vx * s.length * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
+    const tailY = s.y - s.vy * s.length * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
+
+    // Trail gradient (bright head → transparent tail)
+    const trailGrad = context.createLinearGradient(
+      tailX, tailY,
+      s.x, s.y,
+    );
+    const tailAlpha = alpha * 0.3;
+    trailGrad.addColorStop(0, `hsla(${s.hue}, 60%, 90%, ${tailAlpha})`);
+    trailGrad.addColorStop(0.3, `hsla(${s.hue}, 80%, 92%, ${alpha * 0.7})`);
+    trailGrad.addColorStop(1, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
+
+    // Draw trail as thick line
+    context.strokeStyle = trailGrad;
+    context.lineWidth = s.thickness * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(tailX, tailY);
+    context.lineTo(s.x, s.y);
+    context.stroke();
+
+    // Bright head glow
+    const headGlow = context.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.thickness * 3);
+    headGlow.addColorStop(0, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
+    headGlow.addColorStop(0.4, `hsla(${s.hue}, 100%, 85%, ${alpha * 0.5})`);
+    headGlow.addColorStop(1, "hsla(0, 0%, 100%, 0)");
+    context.fillStyle = headGlow;
+    context.beginPath();
+    context.arc(s.x, s.y, s.thickness * 3, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.restore();
+}
 
 function drawStars() {
   const c = config;
@@ -318,7 +476,7 @@ function updateStars(time) {
   const pointerY = pointer.y - 0.5;
 
   for (const star of stars) {
-    if (!c.motion.prefersReducedMotion) {
+    if (!c.motion.prefersReducedMotion && !config.shootingStar.prefersReducedMotion) {
       const driftScale = c.starMotion.driftBase + star.depth * c.starMotion.driftDepthScale;
       star.x = (star.x + star.speedX * driftScale
         + pointerX * c.parallax.sensitivityX * (1 - star.depth)
@@ -357,6 +515,8 @@ function render(timestamp) {
   context.clearRect(0, 0, width, height);
   drawBackdrop(time);
   updateStars(time);
+  updateShootingStars();
+  drawShootingStars();
   drawStars();
 
   if (c.prefersReducedMotion) return;  // still render but don't loop
