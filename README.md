@@ -1,6 +1,8 @@
-# constell.js
+# constell
 
 Animated constellation background for any webpage — stars, nebulae, parallax, and glow.
+
+<img width="2213" height="1182" alt="constell-ss" src="https://github.com/user-attachments/assets/c726914f-1587-4c27-b740-fa6c321642cf" />
 
 ```html
 <!-- 1. Include CSS (optional; ships a pleasant default) -->
