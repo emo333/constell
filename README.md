@@ -1,6 +1,22 @@
 # constell
 
-Animated constellation background for any webpage — stars, nebulae, parallax, and glow.
+**Constell** is a self-contained, drop-in animated background component for any webpage.
+It paints a living, ever-shifting night sky — dozens of stars drifting at different depths,
+multi-toned nebula clouds swaying behind them, parallax shift that follows the cursor, and
+the occasional shooting star streaking across — onto a canvas element positioned behind
+your page content.
+
+The component ships as a tiny, dependency-free pair of files placed beside your HTML:
+
+- **`constell.js`** — an ES module that performs all of the rendering and animation, exposes a small
+  `Constell` API (`init` / `configure`) and is documented in detail further down this README.
+- **`constell.css`** — an optional stylesheet that provides sensible dark-mode defaults for the
+  page's background gradient and overlay, plus a set of CSS custom properties you can override to
+  retheme the look without touching any JavaScript.
+
+There is no build step, no framework, no runtime dependency and no network request. Drop the two
+files into a project, add a canvas element, and call `Constell.init()` — your static page becomes
+a calm, animated, deep-space surface in a handful of lines.
 
 <img width="2213" height="1182" alt="constell-ss" src="https://github.com/user-attachments/assets/c726914f-1587-4c27-b740-fa6c321642cf" />
 
@@ -28,6 +44,100 @@ Animated constellation background for any webpage — stars, nebulae, parallax, 
 ```
 
 You can also call `Constell.configure(overrides)` at any time to change settings after init — stars are re-seeded when `star.count` changes.
+
+---
+
+## How To Use In Your Web Page
+
+Follow these steps to add the constellation background to one of your own pages. The whole process
+takes only a few minutes and the result is a small handful of files plus a couple of lines of
+HTML.
+
+### 1. Copy the two files next to your HTML
+
+Copy **`constell.js`** and **`constell.css`** into the same folder as the HTML page you want to
+enhance (or anywhere convenient — just adjust the paths in the steps below). No other files,
+bundlers or libraries are required.
+
+### 2. Link the stylesheet
+
+Add the stylesheet inside the `<head>` of your page:
+
+```html
+<link rel="stylesheet" href="constell.css">
+```
+
+This gives you a dark body gradient, sets up basic full-viewport geometry, and exposes the
+documented `--constell-*` theming variables. The stylesheet is **optional** — if you already
+have your own background styles, feel free to skip this step.
+
+### 3. Add a `<canvas>` element
+
+Place a `<canvas>` somewhere in your `<body>`. Its `id` will be used to attach the animation:
+
+```html
+<canvas id="scene"></canvas>
+```
+
+When `constell.css` is loaded, that element is automatically positioned as a fixed,
+full-viewport background layer behind your content (via the `#scene` rule). If you skipped
+step 2, add the equivalent `position: fixed; inset: 0; width: 100%; height: 100%;` styles yourself
+so the canvas sits behind everything else.
+
+### 4. Initialise the animation
+
+At the end of your page (or in your own JS module), import and call `Constell.init()`:
+
+```html
+<script type="module">
+  import { Constell } from "./constell.js";
+
+  // Defaults — 42 stars, nebulae, parallax, occasional shooting stars
+  Constell.init("#scene");
+</script>
+```
+
+You can pass either a CSS-selector string (such as `"#scene"`) **or** the canvas element itself.
+With these four lines you already have a working animated background.
+
+### 5. (Optional) Tweak the look and behaviour
+
+Pass a config object as the second argument to override the defaults at startup:
+
+```html
+<script type="module">
+  import { Constell } from "./constell.js";
+
+  Constell.init("#scene", {
+    star:    { count: 90 },
+    motion:  { speed: 6 },                 // faster overall motion
+    shootingStar: { chancePerFrame: 0.02 }, // more meteors
+  });
+</script>
+```
+
+Or change settings later at runtime from anywhere in your code:
+
+```js
+Constell.configure({ star: { count: 120 } });  // stars are re-seeded automatically
+```
+
+For purely visual changes (background colours, blur strength, text colours, etc.) you can override
+the documented `--constell-*` CSS custom properties on `:root` without touching any JavaScript.
+
+### 6. Serve the page over HTTP
+
+Browsers refuse to load ES modules from raw `file://` URLs, so you need to serve your page over
+HTTP. Any static server works — for example:
+
+```bash
+python -m http.server 8001 --directory .
+# then open http://localhost:8001
+```
+
+Other common options: `npx serve .`, VS Code's *Live Server* extension, or whatever workflow
+you normally use for static sites. Hit reload after editing and the animated background updates
+immediately.
 
 ---
 
