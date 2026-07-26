@@ -4,44 +4,40 @@
     <meta charset="utf-8" />
     <link rel="icon" href="data:," />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <title>Constell</title>
     <link rel="stylesheet" href="constell.css" />
   </head>
   <body>
     <canvas id="scene" aria-hidden="true"></canvas>
 
-    <!-- Override CSS variables to demo runtime theming -->
-    <style>
-      :root {
-        --constell-nebula-a: rgba(255, 100, 180, 0.2);
-        --constell-nebula-b: rgba(80, 200, 255, 0.14);
-        --constell-overlay-border: rgba(200, 220, 255, 0.2);
-      }
-    </style>
-
     <main class="overlay" aria-label="Constellation background preview">
       <p class="eyebrow">Constellation Background</p>
       <h1>Constell</h1>
-      <p class="copy">Animated starfield with shooting stars — tweak the config below.</p>
+      <p class="copy">Animated starfield with shooting stars. Click the button to toggle theme.</p>
+      <button id="theme-toggle" class="theme-btn" aria-label="Toggle theme">
+        🌗 Toggle Theme
+      </button>
     </main>
 
     <!-- Demo: pass a config object on init -->
     <script type="module">
       import { Constell } from "./constell.js";
 
-      // Shooting stars are enabled by default — tweak their frequency/color here
       Constell.init("#scene", {
+        theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
         star: { count: 35, hueMin: 170, hueMax: 280 },
         motion:  { frameMs: 33, speed: 5 },     // ~30 fps, normal speed (1-10)
         parallax: { sensitivityX: 0.0008, sensitivityY: 0.0006 },
         visual: { glowThreshold: 0.55, glowRadiusMultiplier: 4.5 },
         shootingStar: {
-          // Default chancePerFrame: 0.008 (~1 every 2s at 30fps)
-          // Increase for more dramatic effect
           hueMin: 200,
           hueMax: 260, // blue-white meteors
         },
+      });
+
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        Constell.toggleTheme();
       });
     </script>
   </body>

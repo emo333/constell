@@ -6,6 +6,7 @@
  *   Constell.init(canvas);                              // defaults
  *   Constell.init(canvas, userConfig);                  // with overrides
  *   Constell.configure(overrides);                      // runtime re-config
+ *   Constell.toggleTheme("light" | "dark" | "system");    // switch theme
  */
 
 /* ──────────────────────────────────────────────
@@ -111,6 +112,8 @@ const DEFAULT_CONFIG = {
     lifetimeMax: 60,
   },
 
+  theme: "dark", // "dark" | "light" | "system"
+
   backdrop: {
     colorTop: "#030510",
     colorMid: "#061425",
@@ -119,16 +122,115 @@ const DEFAULT_CONFIG = {
 };
 
 /* ──────────────────────────────────────────────
-   Config helpers — deep merge with defaults
+   Theme definitions — each overrides a subset of
+   DEFAULT_CONFIG; resolved themes are deep-merged.
+   ────────────────────────────────────────────── */
+const THEMES = {
+  dark: {
+    backdrop: { colorTop: "#030510", colorMid: "#061425" },
+    star:     { hueMin: 198, hueMax: 236 },
+    nebula: [
+      { color: "rgba(126, 94, 255, 0.18)" },
+      { color: "rgba(0, 224, 255, 0.14)" },
+      { color: "rgba(255, 121, 214, 0.08)" },
+    ],
+    shootingStar: { hueMin: 190, hueMax: 240 },
+  },
+
+  light: {
+    backdrop: { colorTop: "#d6e0f0", colorMid: "#eaf0fa" },
+    star:     { hueMin: 210, hueMax: 310 }, // cooler / softer for light bg
+    visual: {
+      alphaBase: 0.55,               // Much higher so stars visible on bright bg
+      glowThreshold: 1.0,            // Effectively disables glows (pointless on light bg)
+      glowAlphaMultiplier: 0,
+      twinkleAmplitude: 0.12,
+    },
+    nebula: [
+      { color: "rgba(145, 130, 240, 0.48)" },  // lighter purple
+      { color: "rgba(40, 120, 220, 0.45)" },     // deep blue
+      { color: "rgba(255, 170, 80, 0.38)" },     // lighter orange
+    ],
+    shootingStar: {
+      hueMin: 38,
+      hueMax: 52,
+      headAlpha: 0.95,
+      lengthMin: 100,
+      lengthMax: 240,
+      thicknessMin: 2.5,
+      thicknessMax: 4.0,
+    },
+  },
+};
+
+/* ──────────────────────────────────────────────
+   Config helpers — deep merge with defaults + theme resolution
    ────────────────────────────────────────────── */
 
 /**
+ * Deep-merge a theme definition into DEFAULT_CONFIG.
+ * Returns a new config object with the theme applied as base.
+ * @param {string}  themeName — resolved theme key ("dark" | "light")
+ * @param {string} [retainMode] — original theme mode (e.g. "system" to preserve) or undefined
+ */
+function applyTheme(themeName, retainMode) {
+  if (!themeName || !THEMES[themeName]) {
+    const cfg = structuredClone(DEFAULT_CONFIG);
+    if (retainMode !== undefined) cfg.theme = retainMode;
+    return cfg;
+  }
+  const cfg = structuredClone(DEFAULT_CONFIG);
+  const th = THEMES[themeName];
+
+  for (const key of ["star", "motion", "parallax", "visual"]) {
+    if (key in th && typeof th[key] === "object") {
+      Object.assign(cfg[key], th[key]);
+    }
+  }
+
+  if (Array.isArray(th.nebula)) {
+    for (let i = 0; i < th.nebula.length; i++) {
+      if (i < cfg.nebula.length && typeof th.nebula[i] === "object") {
+        Object.assign(cfg.nebula[i], th.nebula[i]);
+      }
+    }
+  }
+
+  if (th.shootingStar && typeof th.shootingStar === "object") {
+    Object.assign(cfg.shootingStar, th.shootingStar);
+  }
+
+  if (th.backdrop && typeof th.backdrop === "object") {
+    Object.assign(cfg.backdrop, th.backdrop);
+  }
+
+  // Set resolved theme name, but preserve original mode (e.g. "system")
+  cfg.theme = retainMode != null ? retainMode : themeName;
+  return cfg;
+}
+
+/**
+ * Resolve the effective theme name from config.
+ * "system" → detects prefers-color-scheme.
+ */
+function resolveTheme(config) {
+  const raw = config.theme || "dark";
+  if (raw === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return raw;
+}
+
+/**
  * Deep-merge a user config over the defaults (shallow on first level,
- * merges star / motion / parallax / visual / nebula sub-objects).
+ * merges star / motion / parallax / visual / nebula sub-objects),
+ * with theme resolution applied.
  */
 function mergeConfig(user) {
-  const cfg = structuredClone(DEFAULT_CONFIG);
-
+  // Resolve the effective theme, preserving any mode the user wants to keep
+  const effectiveTheme = (user && user.theme !== undefined) ? user.theme : config.theme;
+  const resolvedTheme = resolveTheme({ theme: effectiveTheme });
+  const cfg = applyTheme(resolvedTheme, effectiveTheme); // pass through original mode
   if (!user) return cfg;
 
   // Merge top-level known groups
@@ -179,6 +281,17 @@ let width = 0,
 let lastFrameTime = 0;
 let animationId = null;
 let initialized = false;
+
+// Dark-mode media query listener for "system" theme switching
+const _darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+_darkQuery.addEventListener?.("change", onSystemThemeChange);
+
+function onSystemThemeChange() {
+  if (!initialized) return;
+  if (config.theme !== "system") return;
+  const newCfg = mergeConfig({}); // re-resolve theme from current config
+  Object.assign(config, newCfg);
+}
 
 /* ──────────────────────────────────────────────
    Math helpers (kept as bare functions for perf)
@@ -260,7 +373,11 @@ function drawBackdrop(time) {
 
   // ── Nebula layers ──
   context.save();
-  context.globalCompositeOperation = "screen";
+  // screen brightens (dark bg); darken/normal darkens (light bg)
+  const blendMode = config.theme === "system"
+    ? (resolveTheme(config) === "light" ? "darken" : "screen")
+    : (config.theme === "light" ? "darken" : "screen");
+  context.globalCompositeOperation = blendMode;
 
   for (const layer of c.nebula) {
     const t = time;
@@ -295,8 +412,16 @@ function drawBackdrop(time) {
     const cy = height * layer.yBase + offsetY;
     const radius = Math.max(width, height) * layer.radiusScale;
 
-    // Build gradient — fade alpha to ~1/3 at mid-stop
-    const fadedColor = layer.color.replace(/([\d.]+)(?=\))/, (m) => (parseFloat(m) * 0.33).toFixed(2));
+    // Build gradient — fade alpha down toward edges
+    let fadedColor;
+    const baseRgba = layer.color.match(/rgba?\(([^)]+)\)/);
+    if (baseRgba && baseRgba[1].split(',').length === 4) {
+      const p = baseRgba[1].split(',');
+      const newAlpha = parseFloat(p[3]) * 0.5;
+      fadedColor = `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${newAlpha.toFixed(2)})`;
+    } else {
+      fadedColor = layer.color;
+    }
     const gradient = context.createRadialGradient(cx, cy, 0, cx, cy, radius);
     gradient.addColorStop(0, layer.color);
     gradient.addColorStop(0.55, fadedColor);
@@ -398,8 +523,13 @@ function updateShootingStars() {
 function drawShootingStars() {
   if (shootingStars.length === 0) return;
 
+  const c = config;
+  const isLight = c.theme === "system"
+    ? resolveTheme({ theme: c.theme }) === "light"
+    : c.theme === "light";
+
   context.save();
-  context.globalCompositeOperation = "screen";
+  context.globalCompositeOperation = isLight ? "darken" : "screen";
 
   for (const s of shootingStars) {
     const fadeProgress = s.life / s.maxLife;
@@ -407,9 +537,9 @@ function drawShootingStars() {
 
     // Fade in quickly, then gradual fade out
     if (s.life < s.fadeIn) {
-      alpha = (s.life / s.fadeIn) * config.shootingStar.headAlpha;
+      alpha = (s.life / s.fadeIn) * c.shootingStar.headAlpha;
     } else {
-      alpha = config.shootingStar.headAlpha * (1 - (fadeProgress - 0.1) / 0.9);
+      alpha = c.shootingStar.headAlpha * (1 - (fadeProgress - 0.1) / 0.9);
     }
     alpha = Math.max(0, alpha);
 
@@ -418,31 +548,56 @@ function drawShootingStars() {
     const tailX = s.x - s.vx * s.length * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
     const tailY = s.y - s.vy * s.length * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
 
-    // Trail gradient (bright head → transparent tail)
-    const trailGrad = context.createLinearGradient(tailX, tailY, s.x, s.y);
-    const tailAlpha = alpha * 0.3;
-    trailGrad.addColorStop(0, `hsla(${s.hue}, 60%, 90%, ${tailAlpha})`);
-    trailGrad.addColorStop(0.3, `hsla(${s.hue}, 80%, 92%, ${alpha * 0.7})`);
-    trailGrad.addColorStop(1, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
+    if (isLight) {
+      // Light mode: dark shooting star trail against light sky
+      const trailGrad = context.createLinearGradient(tailX, tailY, s.x, s.y);
+      const tailAlpha = alpha * 0.5;
+      trailGrad.addColorStop(0, `rgba(60, 50, 100, ${tailAlpha})`);
+      trailGrad.addColorStop(0.3, `rgba(80, 70, 120, ${alpha * 0.7})`);
+      trailGrad.addColorStop(1, `rgba(40, 35, 80, ${alpha})`);
 
-    // Draw trail as thick line
-    context.strokeStyle = trailGrad;
-    context.lineWidth = s.thickness * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
-    context.lineCap = "round";
-    context.beginPath();
-    context.moveTo(tailX, tailY);
-    context.lineTo(s.x, s.y);
-    context.stroke();
+      context.strokeStyle = trailGrad;
+      context.lineWidth = s.thickness * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(tailX, tailY);
+      context.lineTo(s.x, s.y);
+      context.stroke();
 
-    // Bright head glow
-    const headGlow = context.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.thickness * 3);
-    headGlow.addColorStop(0, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
-    headGlow.addColorStop(0.4, `hsla(${s.hue}, 100%, 85%, ${alpha * 0.5})`);
-    headGlow.addColorStop(1, "hsla(0, 0%, 100%, 0)");
-    context.fillStyle = headGlow;
-    context.beginPath();
-    context.arc(s.x, s.y, s.thickness * 3, 0, Math.PI * 2);
-    context.fill();
+      // Dark head dot (no glow on light bg)
+      const headGlow = context.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.thickness * 2);
+      headGlow.addColorStop(0, `rgba(30, 25, 70, ${alpha})`);
+      headGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      context.fillStyle = headGlow;
+      context.beginPath();
+      context.arc(s.x, s.y, s.thickness * 2, 0, Math.PI * 2);
+      context.fill();
+    } else {
+      // Dark mode: bright shooting star
+      const trailGrad = context.createLinearGradient(tailX, tailY, s.x, s.y);
+      const tailAlpha = alpha * 0.3;
+      trailGrad.addColorStop(0, `hsla(${s.hue}, 60%, 90%, ${tailAlpha})`);
+      trailGrad.addColorStop(0.3, `hsla(${s.hue}, 80%, 92%, ${alpha * 0.7})`);
+      trailGrad.addColorStop(1, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
+
+      context.strokeStyle = trailGrad;
+      context.lineWidth = s.thickness * (s.life < s.fadeIn ? s.life / s.fadeIn : 1);
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(tailX, tailY);
+      context.lineTo(s.x, s.y);
+      context.stroke();
+
+      // Bright head glow
+      const headGlow = context.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.thickness * 3);
+      headGlow.addColorStop(0, `hsla(${s.hue}, 100%, 98%, ${alpha})`);
+      headGlow.addColorStop(0.4, `hsla(${s.hue}, 100%, 85%, ${alpha * 0.5})`);
+      headGlow.addColorStop(1, "hsla(0, 0%, 100%, 0)");
+      context.fillStyle = headGlow;
+      context.beginPath();
+      context.arc(s.x, s.y, s.thickness * 3, 0, Math.PI * 2);
+      context.fill();
+    }
   }
 
   context.restore();
@@ -450,15 +605,25 @@ function drawShootingStars() {
 
 function drawStars() {
   const c = config;
+  const isLight = c.theme === "system"
+    ? resolveTheme({ theme: c.theme }) === "light"
+    : c.theme === "light";
+
   context.save();
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = isLight ? "darken" : "lighter";
 
   for (const star of stars) {
     const radius = star.radius * (0.7 + star.depth * 0.9) * star.twinkle;
     const alpha = c.visual.alphaBase + star.depth * c.visual.alphaDepthScale;
     const hue = star.hue;
 
-    context.fillStyle = `hsla(${hue}, 100%, 88%, ${alpha})`;
+    if (isLight) {
+      // Light mode: draw dark stars (like daytime sky view)
+      context.fillStyle = `hsla(${hue}, 50%, 28%, ${alpha})`;
+    } else {
+      // Dark mode: bright white/blue stars
+      context.fillStyle = `hsla(${hue}, 100%, 88%, ${alpha})`;
+    }
     context.beginPath();
     context.arc(star.screenX, star.screenY, radius, 0, Math.PI * 2);
     context.fill();
@@ -466,7 +631,12 @@ function drawStars() {
     if (star.depth > c.visual.glowThreshold) {
       const glowRadius = radius * c.visual.glowRadiusMultiplier;
       const glow = context.createRadialGradient(star.screenX, star.screenY, 0, star.screenX, star.screenY, glowRadius);
-      glow.addColorStop(0, `hsla(${hue}, 100%, 85%, ${alpha * c.visual.glowAlphaMultiplier})`);
+      if (isLight) {
+        // No glow in light mode — stars are dark dots
+        glow.addColorStop(0, `rgba(0, 0, 0, ${alpha * c.visual.glowAlphaMultiplier})`);
+      } else {
+        glow.addColorStop(0, `hsla(${hue}, 100%, 85%, ${alpha * c.visual.glowAlphaMultiplier})`);
+      }
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
       context.beginPath();
@@ -617,11 +787,61 @@ function configure(overrides) {
   }
 }
 
+/**
+ * Toggle or set the active theme.
+ * @param {"dark"|"light"} [mode] — explicit mode, or toggle on repeated calls without arg
+ * @returns {"dark"|"light"} the resolved theme name that was set
+ */
+function toggleTheme(mode) {
+  if (!initialized) throw new Error("Constell: call init() before toggleTheme()");
+
+  // If no mode given, toggle: dark ↔ light
+  if (mode === undefined) {
+    mode = config.theme === "dark" ? "light" : "dark";
+  }
+
+  config.theme = mode;
+  document.body.setAttribute("data-theme", mode === "system" ? (resolveTheme(config) === "light" ? "light" : "dark") : mode);
+
+  // Apply ONLY the theme-specific overrides into the existing config.
+  // This preserves non-theme settings (motion.frameMs, parallax, etc.)
+  const resolved = resolveTheme({ theme: mode });
+  const th = THEMES[resolved];
+  if (!th) return mode;
+
+  for (const key of ["star", "motion", "parallax", "visual"]) {
+    if (key in th && typeof th[key] === "object") {
+      Object.assign(config[key], th[key]);
+    }
+  }
+
+  if (Array.isArray(th.nebula)) {
+    for (let i = 0; i < th.nebula.length && i < config.nebula.length; i++) {
+      if (typeof th.nebula[i] === "object") {
+        Object.assign(config.nebula[i], th.nebula[i]);
+      }
+    }
+  }
+
+  if (th.shootingStar && typeof th.shootingStar === "object") {
+    Object.assign(config.shootingStar, th.shootingStar);
+  }
+
+  if (th.backdrop && typeof th.backdrop === "object") {
+    Object.assign(config.backdrop, th.backdrop);
+  }
+
+  // Stars need re-generation with new hue ranges for theme colors
+  seedStars();
+
+  return mode;
+}
+
 /* ──────────────────────────────────────────────
    Exports
    ────────────────────────────────────────────── */
 
-const Constell = { init, configure };
+const Constell = { init, configure, toggleTheme };
 
 export { Constell };
 

@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+   Dark theme (default)
+   ═══════════════════════════════════════════ */
+
 :root {
   color-scheme: dark;
   font-family:
@@ -22,7 +26,23 @@
   --constell-overlay-blur: 18px;
 
   --constell-eyebrow-color: rgba(180, 220, 255, 0.78);
-  --constell-copy-color: rgba(230, 239, 255, 0.78);
+  --constell-copy-color:   rgba(230, 239, 255, 0.78);
+}
+
+/* ═══════════════════════════════════════════
+   Light theme overrides
+   ═══════════════════════════════════════════ */
+
+[data-theme="light"] {
+  color-scheme: light;
+  --constell-bg-start: #d6e0f0;
+  --constell-bg-end:   #eaf0fa;
+  --constell-nebula-a: rgba(150, 140, 255, 0.13);
+  --constell-nebula-b: rgba(90, 200, 255, 0.10);
+  --constell-overlay-bg: rgba(255, 255, 255, 0.65);
+  --constell-overlay-border: rgba(120, 140, 200, 0.22);
+  --constell-eyebrow-color: rgba(80, 60, 140, 0.72);
+  --constell-copy-color:   rgba(50, 40, 90,  0.80);
 }
 
 html,
@@ -34,8 +54,19 @@ body {
 
 body {
   overflow: hidden;
-  background: radial-gradient(circle at 20% 20%, var(--constell-nebula-a), transparent 34%), radial-gradient(circle at 80% 18%, var(--constell-nebula-b), transparent 28%), linear-gradient(180deg, var(--constell-bg-start) 0%, var(--constell-bg-end) 100%);
+  background:
+    radial-gradient(circle at 20% 20%, var(--constell-nebula-a), transparent 34%),
+    radial-gradient(circle at 80% 18%, var(--constell-nebula-b), transparent 28%),
+    linear-gradient(180deg, var(--constell-bg-start) 0%, var(--constell-bg-end) 100%);
   color: rgba(245, 248, 255, 0.92);
+}
+
+[data-theme="light"] body {
+  color: rgba(20, 15, 50, 0.92);
+}
+
+[data-theme="light"] h1 {
+  color: #1a1530;
 }
 
 #scene {
@@ -76,6 +107,36 @@ h1 {
   font-weight: 700;
 }
 
+/* ── Toggle button — always visible regardless of theme ── */
+
+.theme-btn {
+  pointer-events: auto;
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.45rem 1.3rem;
+  border: 2px solid var(--constell-overlay-border);
+  border-radius: 0.6rem;
+  background: var(--constell-overlay-bg);
+  backdrop-filter: blur(var(--constell-overlay-blur));
+  color: var(--constell-copy-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.theme-btn:hover {
+  border-color: var(--constell-eyebrow-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  transform: scale(1.04);
+}
+
+.theme-btn:active {
+  transform: scale(0.97);
+  background: color-mix(in srgb, var(--constell-overlay-bg) 75%, black 10%);
+}
+
 .copy {
   margin: 0.8rem auto 0;
   max-width: 30ch;
@@ -83,6 +144,8 @@ h1 {
   line-height: 1.6;
   color: var(--constell-copy-color);
 }
+
+/* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {
   .overlay {
