@@ -1,5 +1,7 @@
 # constell
 
+[My Blog Post on constell✴️](https://www.csimw.com/post/constell-js-animated-background)
+
 **Constell** is a self-contained, drop-in animated background component for any webpage.
 It paints a living, ever-shifting night sky — dozens of stars drifting at different depths,
 multi-toned nebula clouds swaying behind them, parallax shift that follows the cursor, and
@@ -341,11 +343,11 @@ Constell has built-in support for dark and light themes. Both the canvas renderi
 shooting stars, backdrop gradient) and the CSS overlay elements switch together when you change theme.
 There are three ways to set a theme:
 
-| Mode      | Behaviour                                          |
-| --------- | -------------------------------------------------- |
-| `"dark"`  | Always use the dark palette                        |
-| `"light"` | Always use the light palette                       |
-| `"system"`  | Follow the user's OS preference (`prefers-color-scheme`) |
+| Mode       | Behaviour                                                |
+| ---------- | -------------------------------------------------------- |
+| `"dark"`   | Always use the dark palette                              |
+| `"light"`  | Always use the light palette                             |
+| `"system"` | Follow the user's OS preference (`prefers-color-scheme`) |
 
 The default is `"dark"`. Set it in your init config:
 
@@ -359,15 +361,16 @@ Use `Constell.toggleTheme()` to change the active theme at runtime. It accepts o
 
 ```js
 // Set a specific theme
-Constell.toggleTheme("light");  // force light
-Constell.toggleTheme("dark");   // force dark
-Constell.toggleTheme("system");   // follow OS preference
+Constell.toggleTheme("light"); // force light
+Constell.toggleTheme("dark"); // force dark
+Constell.toggleTheme("system"); // follow OS preference
 
 // Toggle: dark ↔ light (system is set at init time, not toggled)
 Constell.toggleTheme();
 ```
 
 Internally, `toggleTheme` does two things:
+
 1. **Canvas** — applies the theme's colour values (backdrop gradient, star/nebula/shooting-star colors) into the existing config via `Object.assign`. Your non-theme settings (motion speed, parallax sensitivity, custom overrides) are preserved.
 2. **DOM overlay** — sets the `data-theme="dark"` or `data-theme="light"` attribute on `<body>`, which triggers CSS variable overrides in `constell.css` for text and card colors.
 
@@ -507,7 +510,7 @@ If your site already uses CSS custom properties for theming, you can let Constel
 /* Your global theme toggle sets this */
 [data-theme="light"] {
   --constell-bg-start: #e8ecf4;
-  --constell-bg-end:   #f6f8fc;
+  --constell-bg-end: #f6f8fc;
 }
 ```
 
