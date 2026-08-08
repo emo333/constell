@@ -1,3 +1,5 @@
+<img width="619" height="171" alt="constell-logo" src="https://github.com/user-attachments/assets/910b5e34-1634-40e1-a6a1-356559e6d904" />
+
 # constell
 
 [My Blog Post on constell✴️](https://www.csimw.com/post/constell-js-animated-background)
